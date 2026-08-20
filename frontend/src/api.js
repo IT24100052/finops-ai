@@ -1,4 +1,4 @@
-const BASE = ''  // Vite proxy handles /auth, /costs, /ai, /billing
+const BASE = ''  // Vite proxy handles /auth, /costs, /ai, /billing, /budgets
 
 function getToken() {
   return localStorage.getItem('finops_token')
@@ -30,11 +30,22 @@ async function request(path, options = {}) {
     throw new Error(err.detail || 'Request failed')
   }
 
+  // Handle 204 No Content (DELETE)
+  if (res.status === 204) return null
+
   return res.json()
 }
 
+function buildQuery(params = {}) {
+  const q = Object.entries(params)
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+  return q ? `?${q}` : ''
+}
+
 export const api = {
-  // Auth
+  // ── Auth ────────────────────────────────────────────────────────────────
   register: (email, password) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
@@ -52,7 +63,7 @@ export const api = {
     return res.json()
   },
 
-  // Billing
+  // ── Billing ──────────────────────────────────────────────────────────────
   uploadCSV: (file) => {
     const fd = new FormData()
     fd.append('file', file)
@@ -61,13 +72,31 @@ export const api = {
 
   clearBilling: () => request('/billing/clear', { method: 'DELETE' }),
 
-  // Costs
-  getSummary:    () => request('/costs/summary'),
-  getDailyCosts: () => request('/costs/daily'),
-  getByResource: () => request('/costs/by-resource'),
+  // ── Costs ────────────────────────────────────────────────────────────────
+  getSummary:        (filters = {}) => request(`/costs/summary${buildQuery(filters)}`),
+  getDailyCosts:     (filters = {}) => request(`/costs/daily${buildQuery(filters)}`),
+  getByResource:     ()             => request('/costs/by-resource'),
+  getByProvider:     (filters = {}) => request(`/costs/by-provider${buildQuery(filters)}`),
+  getByRegion:       (filters = {}) => request(`/costs/by-region${buildQuery(filters)}`),
+  getByService:      (filters = {}) => request(`/costs/by-service${buildQuery(filters)}`),
+  getByTeam:         (filters = {}) => request(`/costs/by-team${buildQuery(filters)}`),
+  getByProject:      (filters = {}) => request(`/costs/by-project${buildQuery(filters)}`),
+  getByEnvironment:  (filters = {}) => request(`/costs/by-environment${buildQuery(filters)}`),
 
-  // AI
-  getPrediction: (days = 30) => request(`/ai/prediction?horizon_days=${days}`),
-  getWaste:      () => request('/ai/waste'),
-  getInsights:   () => request('/ai/insights'),
+  // ── Resources ────────────────────────────────────────────────────────────
+  getResources:      (filters = {}) => request(`/costs/resources${buildQuery(filters)}`),
+  getResource:       (id)           => request(`/costs/resources/${encodeURIComponent(id)}`),
+
+  // ── AI ───────────────────────────────────────────────────────────────────
+  getPrediction:     (days = 30)    => request(`/ai/prediction?horizon_days=${days}`),
+  getWaste:          ()             => request('/ai/waste'),
+  getInsights:       ()             => request('/ai/insights'),
+  getFinopsScore:    ()             => request('/ai/finops-score'),
+  getDataQuality:    ()             => request('/ai/data-quality'),
+
+  // ── Budgets ──────────────────────────────────────────────────────────────
+  getBudgets:    ()         => request('/budgets'),
+  createBudget:  (data)     => request('/budgets', { method: 'POST', body: JSON.stringify(data) }),
+  updateBudget:  (id, data) => request(`/budgets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBudget:  (id)       => request(`/budgets/${id}`, { method: 'DELETE' }),
 }

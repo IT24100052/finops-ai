@@ -1,16 +1,18 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, TrendingUp, AlertTriangle, Upload,
-  Bell, LogOut, Server
+  Bell, LogOut, Server, Database, Shield, Activity
 } from 'lucide-react'
 import { useAuth } from '../AuthContext'
 
 const NAV = [
-  { icon: LayoutDashboard, label: 'Dashboard',  path: '/' },
-  { icon: TrendingUp,      label: 'Predictions', path: '/predictions' },
-  { icon: AlertTriangle,   label: 'Waste',       path: '/waste' },
-  { icon: Bell,            label: 'Alerts',      path: '/alerts' },
+  { icon: LayoutDashboard, label: 'Dashboard',    path: '/' },
+  { icon: TrendingUp,      label: 'Predictions',  path: '/predictions' },
+  { icon: AlertTriangle,   label: 'Waste',        path: '/waste' },
+  { icon: Bell,            label: 'Alerts',       path: '/alerts' },
+  { icon: Database,        label: 'Resources',    path: '/resources' },
   { icon: Upload,          label: 'Data Upload',  path: '/upload' },
+  { icon: Activity,        label: 'Data Quality', path: '/data-quality' },
 ]
 
 export default function Sidebar() {
@@ -22,7 +24,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-logo">
         <span className="logo-mark">FinOps AI</span>
-        <span className="logo-sub">Cost Intelligence</span>
+        <span className="logo-sub">Cloud Cost Intelligence</span>
       </div>
 
       <nav className="sidebar-nav">

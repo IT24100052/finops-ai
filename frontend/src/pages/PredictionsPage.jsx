@@ -111,7 +111,7 @@ export default function PredictionsPage() {
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid-4" style={{ marginBottom: 24 }}>
+            <div className="grid-4" style={{ marginBottom: 14 }}>
               <div className="card">
                 <div className="card-label">Predicted ({horizon}d)</div>
                 <div className="card-value accent">${prediction.predicted_cost.toLocaleString()}</div>
@@ -133,9 +133,33 @@ export default function PredictionsPage() {
                 <div className="card-label">Trend</div>
                 <div style={{ marginTop: 8 }}><TrendPill trend={prediction.trend} /></div>
                 <div className="card-sub" style={{ marginTop: 6 }}>
-                  {prediction.trend === 'rising'  && 'Costs are growing — investigate soon.'}
-                  {prediction.trend === 'falling' && 'Costs are decreasing — good direction.'}
-                  {prediction.trend === 'flat'    && 'Spend is stable over this period.'}
+                  {prediction.confidence && <span className={`badge badge-${prediction.confidence === 'high' ? 'ok' : prediction.confidence === 'medium' ? 'medium' : 'low'}`}>{prediction.confidence} confidence</span>}
+                </div>
+              </div>
+            </div>
+            {/* Extra row: historical avg + change + explanation */}
+            <div className="grid-3" style={{ marginBottom: 24 }}>
+              <div className="card">
+                <div className="card-label">Historical Average</div>
+                <div className="card-value" style={{ fontSize:'1.1rem' }}>
+                  ${prediction.historical_average?.toLocaleString() || '—'}
+                </div>
+                <div className="card-sub">daily average over all history</div>
+              </div>
+              <div className="card">
+                <div className="card-label">Forecast vs History</div>
+                <div className="card-value" style={{
+                  fontSize:'1.1rem',
+                  color: prediction.forecast_change_percentage > 3 ? 'var(--danger)' : prediction.forecast_change_percentage < -3 ? 'var(--accent)' : 'var(--text-primary)'
+                }}>
+                  {prediction.forecast_change_percentage > 0 ? '+' : ''}{prediction.forecast_change_percentage?.toFixed(1) || 0}%
+                </div>
+                <div className="card-sub">vs historical daily average</div>
+              </div>
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div className="card-label">AI Explanation</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  {prediction.explanation || 'No explanation available.'}
                 </div>
               </div>
             </div>

@@ -10,6 +10,7 @@ export default defineConfig({
       '/billing': 'http://127.0.0.1:8000',
       '/costs': 'http://127.0.0.1:8000',
       '/ai': 'http://127.0.0.1:8000',
+      '/budgets': 'http://127.0.0.1:8000',
     },
   },
 })

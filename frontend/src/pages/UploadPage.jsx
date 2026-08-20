@@ -2,13 +2,14 @@ import { useState, useRef } from 'react'
 import { Upload, FileText, CheckCircle, XCircle, Trash2, Download } from 'lucide-react'
 import { api } from '../api'
 
-const SAMPLE_HEADER = 'date,service,resource_id,instance_type,usage_hours,avg_cpu_utilization,storage_gb,cost'
+const SAMPLE_HEADER = 'date,provider,account_id,service,resource_id,resource_name,resource_type,region,environment,team,project,instance_type,usage_hours,avg_cpu_utilization,storage_gb,cost'
 const SAMPLE_ROWS = [
-  '2026-06-01,EC2,i-web-01,m5.large,24.0,72.3,,2.18',
-  '2026-06-01,EC2,i-idle-01,m5.xlarge,24.0,1.4,,4.21',
-  '2026-06-01,S3,s3-logs,,0,,,0.43,1800',
-  '2026-06-01,RDS,db-prod,db.r5.large,24.0,55.0,,3.90',
+  '2026-06-01,AWS,aws-prod-001,EC2,i-web-01,Production Web Server,compute,us-east-1,production,Platform,Customer Portal,m5.large,24.0,72.3,,2.18',
+  '2026-06-01,AWS,aws-prod-001,EC2,i-idle-01,Idle Batch Server,compute,us-east-1,production,Analytics,Data Pipeline,m5.xlarge,24.0,1.4,,4.21',
+  '2026-06-01,AWS,aws-prod-001,S3,s3-logs,Log Archive Bucket,storage,us-east-1,production,Platform,Customer Portal,,0,,1800,0.43',
+  '2026-06-01,Azure,azure-prod-sub,VirtualMachines,vm-prod-api,Azure API VM,compute,eastus,production,Platform,Customer Portal,Standard_D4s_v3,24.0,55.0,,4.80',
 ]
+
 
 function downloadSampleCSV() {
   const content = [SAMPLE_HEADER, ...SAMPLE_ROWS].join('\n')
@@ -122,35 +123,80 @@ export default function UploadPage() {
 
         {/* Result banner */}
         {result && (
-          <div style={{
-            padding: '14px 18px',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: 16,
-            background: result.ok ? 'var(--accent-dim)' : 'var(--danger-dim)',
-            border: `1px solid ${result.ok ? 'rgba(0,212,170,0.25)' : 'rgba(255,77,109,0.25)'}`,
-            display: 'flex', alignItems: 'flex-start', gap: 12,
-          }}>
-            {result.ok
-              ? <CheckCircle size={18} style={{ color:'var(--accent)', flexShrink:0, marginTop:1 }} />
-              : <XCircle    size={18} style={{ color:'var(--danger)', flexShrink:0, marginTop:1 }} />
-            }
-            <div style={{ fontSize:'0.82rem', color:'var(--text-primary)', lineHeight:1.5 }}>
-              {result.cleared
-                ? `Cleared ${result.deleted_rows} billing records successfully.`
-                : result.ok
-                  ? <>
-                      <strong>{result.rows_inserted.toLocaleString()} rows imported</strong> from {result.filename}.
-                      {result.rows_failed > 0 && <> {result.rows_failed} rows skipped.</>}
-                      {' '}<a href="/" style={{ color:'var(--accent)' }}>Go to dashboard →</a>
-                    </>
-                  : `Upload failed: ${result.error}`
+          <div style={{ marginBottom: 16 }}>
+            <div style={{
+              padding: '14px 18px', borderRadius: 'var(--radius-md)',
+              background: result.ok ? 'var(--accent-dim)' : 'var(--danger-dim)',
+              border: `1px solid ${result.ok ? 'rgba(0,212,170,0.25)' : 'rgba(255,77,109,0.25)'}`,
+              display: 'flex', alignItems: 'flex-start', gap: 12,
+              marginBottom: (result.ok && !result.cleared) ? 12 : 0,
+            }}>
+              {result.ok
+                ? <CheckCircle size={18} style={{ color:'var(--accent)', flexShrink:0, marginTop:1 }} />
+                : <XCircle    size={18} style={{ color:'var(--danger)', flexShrink:0, marginTop:1 }} />
               }
-              {result.ok && result.errors?.length > 0 && (
-                <div style={{ marginTop:6, color:'var(--text-muted)', fontFamily:'var(--font-mono)', fontSize:'0.7rem' }}>
-                  Sample errors: {result.errors.slice(0,3).join(' | ')}
-                </div>
-              )}
+              <div style={{ fontSize:'0.82rem', color:'var(--text-primary)', lineHeight:1.5 }}>
+                {result.cleared
+                  ? `Cleared ${result.deleted_rows} billing records successfully.`
+                  : result.ok
+                    ? <><strong>{(result.rows_inserted||0).toLocaleString()} rows imported</strong> from {result.filename}.
+                        {result.rows_rejected > 0 && <> {result.rows_rejected} rows rejected.</>}
+                        {' '}<a href="/" style={{ color:'var(--accent)' }}>Go to dashboard &#x2192;</a>
+                      </>
+                    : `Upload failed: ${result.error}`
+                }
+              </div>
             </div>
+            {result.ok && !result.cleared && (
+              <div className="card" style={{ padding: '14px 18px' }}>
+                <div className="grid-3" style={{ gap: 12, marginBottom: result.validation_errors?.length ? 14 : 0 }}>
+                  {result.total_cost != null && (
+                    <div>
+                      <div className="card-label">Total Cost Imported</div>
+                      <div style={{ fontFamily:'var(--font-mono)', color:'var(--accent)', fontSize:'1.1rem', fontWeight:700 }}>
+                        ${Number(result.total_cost).toLocaleString(undefined,{maximumFractionDigits:2})}
+                      </div>
+                    </div>
+                  )}
+                  {result.date_range && (
+                    <div>
+                      <div className="card-label">Date Range</div>
+                      <div style={{ fontSize:'0.82rem', color:'var(--text-primary)' }}>
+                        {result.date_range.start} &#x2192; {result.date_range.end}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="card-label">Records</div>
+                    <div style={{ fontSize:'0.82rem', color:'var(--text-primary)' }}>
+                      {result.rows_inserted} inserted, {result.rows_rejected} rejected
+                    </div>
+                  </div>
+                  {result.providers_detected?.length > 0 && (
+                    <div>
+                      <div className="card-label">Providers Detected</div>
+                      <div style={{ fontSize:'0.82rem', color:'var(--text-primary)' }}>{result.providers_detected.join(', ')}</div>
+                    </div>
+                  )}
+                  {result.services_detected?.length > 0 && (
+                    <div>
+                      <div className="card-label">Services Detected</div>
+                      <div style={{ fontSize:'0.82rem', color:'var(--text-primary)' }}>{result.services_detected.join(', ')}</div>
+                    </div>
+                  )}
+                </div>
+                {result.validation_errors?.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="card-label" style={{ marginBottom:6, color:'var(--warn)' }}>Validation Warnings ({result.validation_errors.length})</div>
+                    <div style={{ background:'var(--bg-elevated)', borderRadius:'var(--radius-sm)', padding:'8px 12px', maxHeight:120, overflowY:'auto' }}>
+                      {result.validation_errors.map((e,i) => (
+                        <div key={i} style={{ fontFamily:'var(--font-mono)', fontSize:'0.7rem', color:'var(--warn)', marginBottom:3 }}>{e}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
