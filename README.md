@@ -1,3 +1,4 @@
+
 # 💸 FinOps AI — Cloud Cost Optimization Platform
 
 > **FinOps** = Financial Operations for the Cloud.
@@ -494,3 +495,4 @@ finops-ai/
 ## 📄 License
 
 MIT — free to use, fork, and adapt for your own portfolio or organisation.
+
