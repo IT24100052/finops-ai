@@ -1,28 +1,30 @@
-# Python
-__pycache__/
-*.py[cod]
+# Environment
+.env
+.env.*
 
 # Virtual environment
 .venv/
 venv/
-env/
 
-# Environment variables
-.env
+# Python
+__pycache__/
+*.pyc
 
-# Local databases
+# Node
+node_modules/
+dist/
+
+# Database
 *.db
 *.sqlite
 *.sqlite3
 
-# Node.js
-node_modules/
-frontend/dist/
+# Documentation kept local
+API_GUIDE.md
+LEARN.md
 
-# IDE
+# OS / IDE
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
