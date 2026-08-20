@@ -1,498 +1,947 @@
-
 # 💸 FinOps AI — Cloud Cost Optimization Platform
 
-> **FinOps** = Financial Operations for the Cloud.
-> This project helps companies **understand, analyze, and reduce their cloud spending** using AI and data visualization.
+> **FinOps AI** is a full-stack cloud cost intelligence platform that helps organizations understand, analyze, predict, and reduce their cloud spending using data analytics, machine learning, and intelligent recommendations.
 
 ---
 
-## 🤔 What Is This Project?
+## 📌 Project Overview
 
-Imagine a company uses cloud services (like AWS, Azure, or Google Cloud) to run their software. Every month they get a massive bill. This project gives them a **smart dashboard** that:
+Cloud providers such as AWS, Azure, and Google Cloud generate large amounts of billing data. Understanding where money is being spent and identifying unnecessary costs can be difficult.
 
-1. 📤 **Uploads** their cloud billing data (CSV file)
-2. 📊 **Shows** a clear dashboard of where money is being spent
-3. 🤖 **Detects wasted resources** using AI (e.g. a server running 24/7 but doing almost nothing)
-4. 📈 **Predicts future costs** using machine learning
-5. 🔔 **Sets budget alerts** so they know when spending goes over a limit
+**FinOps AI** provides a centralized dashboard that allows users to:
 
-**In short:** It's like a smart financial advisor for cloud bills.
+- 📤 Upload cloud billing data using CSV files
+- 📊 Analyze total and service-level cloud costs
+- 🤖 Detect potentially wasted cloud resources
+- 📈 Predict future cloud spending
+- 💡 Generate AI-powered cost insights
+- 🔔 Identify high-priority cost and waste alerts
+- 💰 Estimate potential monthly savings
+
+### In simple terms
+
+> **FinOps AI acts like an intelligent financial advisor for cloud infrastructure.**
 
 ---
 
-## 🏗️ How Is the Project Structured?
+# ✨ Main Features
 
+## 🔐 Authentication
+
+- User registration
+- User login
+- JWT Bearer authentication
+- Password hashing
+- Protected API endpoints
+- User-specific billing records
+- Role-based access
+
+---
+
+## 📤 Billing Data Upload
+
+Users can upload billing information through a CSV file.
+
+### Endpoint
+
+```text
+POST /billing/upload
+````
+
+### Required fields
+
+```text
+date
+service
+resource_id
+cost
 ```
+
+### Optional fields
+
+```text
+instance_type
+usage_hours
+avg_cpu_utilization
+storage_gb
+```
+
+For accurate waste detection, it is recommended to provide:
+
+```text
+usage_hours
+avg_cpu_utilization
+```
+
+### Example
+
+```csv
+date,service,resource_id,instance_type,usage_hours,avg_cpu_utilization,storage_gb,cost
+2026-06-01,EC2,i-web-01,m5.large,24.0,72.3,,2.18
+2026-06-01,EC2,i-idle-01,m5.xlarge,24.0,1.4,,4.21
+2026-06-01,S3,s3-logs,,,0,1800,0.43
+2026-06-01,RDS,db-prod,db.r5.large,24.0,55.0,,3.90
+```
+
+### Tested result
+
+The sample billing dataset successfully inserted:
+
+```text
+Rows inserted: 1,350
+Rows failed: 0
+```
+
+---
+
+# 📊 Cost Analytics
+
+FinOps AI analyzes uploaded billing records and provides cost summaries.
+
+## Cost Summary
+
+```text
+GET /costs/summary
+```
+
+Example response:
+
+```json
+{
+  "total_cost": 5084.02,
+  "record_count": 1350,
+  "service_breakdown": [
+    {
+      "service": "EC2",
+      "cost": 3439.96
+    },
+    {
+      "service": "RDS",
+      "cost": 1100.93
+    },
+    {
+      "service": "S3",
+      "cost": 453.23
+    },
+    {
+      "service": "Lambda",
+      "cost": 89.9
+    }
+  ],
+  "date_range": {
+    "start": "2026-03-23",
+    "end": "2026-06-20"
+  }
+}
+```
+
+### Current test data
+
+```text
+Total Cost: $5,084.02
+Records: 1,350
+```
+
+The dashboard displays the same information through interactive cards and charts.
+
+---
+
+# 🤖 AI Module
+
+The AI module contains three main API endpoints.
+
+```text
+GET /ai/prediction
+GET /ai/waste
+GET /ai/insights
+```
+
+---
+
+## 📈 1. Cost Prediction
+
+### Endpoint
+
+```text
+GET /ai/prediction?horizon_days=30
+```
+
+The system analyzes historical daily spending and predicts future cloud costs.
+
+The current implementation uses a **linear trend model** based on historical billing data.
+
+### Prediction output
+
+```json
+{
+  "next_period_days": 30,
+  "predicted_cost": 1859.6,
+  "lower_bound": 1850.47,
+  "upper_bound": 1868.73,
+  "trend": "flat",
+  "daily_avg_recent": 60.98
+}
+```
+
+### Current result
+
+```text
+Forecast: $1,859.60
+Range: $1,850.47 – $1,868.73
+Daily average: $60.98
+Trend: Flat
+```
+
+The frontend provides forecast horizons including:
+
+```text
+7 days
+14 days
+30 days
+60 days
+90 days
+```
+
+---
+
+# 🗑️ 2. AI Waste Detection
+
+### Endpoint
+
+```text
+GET /ai/waste
+```
+
+The waste detection engine identifies resources that may be unnecessarily increasing cloud costs.
+
+It uses two layers:
+
+### Layer 1 — Rule-Based Detection
+
+The system checks for conditions such as:
+
+| Detection           | Example                           |
+| ------------------- | --------------------------------- |
+| Idle resource       | Very low CPU utilization          |
+| Oversized instance  | Large instance with low CPU usage |
+| Inefficient storage | High storage cost per GB          |
+
+### Layer 2 — Machine Learning
+
+The system also uses:
+
+```text
+Isolation Forest
+```
+
+to identify statistically unusual cost/usage patterns.
+
+---
+
+## Current Waste Detection Result
+
+The current dataset produces:
+
+```text
+6 issues detected
+3 High severity
+2 Medium severity
+1 Low severity
+```
+
+Estimated potential monthly savings:
+
+```text
+$2,281.92
+```
+
+### Example finding
+
+```json
+{
+  "resource_id": "i-old-batch-job",
+  "service": "EC2",
+  "instance_type": "c5.4xlarge",
+  "issue": "Idle resource",
+  "monthly_cost": 1530.2,
+  "estimated_monthly_savings": 1377.18,
+  "severity": "high"
+}
+```
+
+The UI displays:
+
+* Resource
+* Service
+* Instance type
+* Issue
+* Severity
+* Monthly cost
+* Estimated savings
+* Recommendation
+
+---
+
+# 💡 3. Combined AI Insights
+
+### Endpoint
+
+```text
+GET /ai/insights
+```
+
+This is the main AI dashboard endpoint.
+
+It combines:
+
+```text
+Cost analytics
+      +
+Waste detection
+      +
+Cost prediction
+      +
+Recommendations
+```
+
+The response generates plain-English insight cards.
+
+### Example
+
+```json
+{
+  "total_cost": 5084.02,
+  "total_potential_savings": 2281.92,
+  "waste_percentage": 44.9
+}
+```
+
+### Headline insights
+
+Example:
+
+> You could be wasting 45% of your cloud budget (~$2,281.92/month).
+
+Another example:
+
+> Estimated cost for the next 30 days: $1,859.60.
+
+The dashboard also identifies the most expensive waste issue.
+
+---
+
+# 🔔 Monitoring & Alerts
+
+The Monitoring section provides cost and waste warnings.
+
+Current example alerts include:
+
+### High Priority
+
+```text
+High Waste Ratio
+3 Idle High-Cost Resources
+```
+
+### Medium Priority
+
+```text
+EC2 is 68% of Total Spend
+```
+
+Alerts help users quickly identify areas that require attention.
+
+---
+
+# 🖥️ Frontend
+
+The frontend is built using:
+
+* React
+* Vite
+* React Router
+* Recharts
+* Lucide React
+* Custom CSS
+
+## Main Pages
+
+```text
+Login / Register
+      ↓
+Dashboard
+      ↓
+Predictions
+      ↓
+Waste Detection
+      ↓
+Alerts
+      ↓
+Data Upload
+```
+
+### Dashboard
+
+Displays:
+
+* Total cloud cost
+* Number of billing records
+* Service cost breakdown
+* Spending trends
+* AI insight cards
+
+### Predictions
+
+Displays:
+
+* Forecast horizon
+* Predicted cost
+* Confidence range
+* Daily average
+* Spending trend
+* Historical vs forecast chart
+
+### Waste Detection
+
+Displays:
+
+* Number of issues
+* Estimated savings
+* Severity counts
+* Resource-level findings
+* Recommendations
+
+### Alerts
+
+Displays:
+
+* High priority alerts
+* Medium priority alerts
+* Low priority alerts
+* Waste warnings
+* Spending concentration warnings
+
+### Data Upload
+
+Allows users to:
+
+* Download sample CSV
+* Drag and drop billing data
+* Browse for a CSV file
+* Upload billing records
+* Clear uploaded data
+
+---
+
+# 🏗️ System Architecture
+
+```text
+                 ┌───────────────────────────┐
+                 │       React Frontend      │
+                 │      Vite + Recharts      │
+                 │                           │
+                 │ Dashboard                 │
+                 │ Predictions               │
+                 │ Waste                     │
+                 │ Alerts                    │
+                 │ Data Upload               │
+                 └─────────────┬─────────────┘
+                               │
+                         REST API + JWT
+                               │
+                 ┌─────────────▼─────────────┐
+                 │      FastAPI Backend      │
+                 │                           │
+                 │ Authentication            │
+                 │ Billing Upload            │
+                 │ Cost Analytics            │
+                 │ AI Prediction             │
+                 │ AI Waste Detection        │
+                 │ AI Insights               │
+                 └─────────────┬─────────────┘
+                               │
+                 ┌─────────────▼─────────────┐
+                 │        PostgreSQL         │
+                 │                           │
+                 │ Users                     │
+                 │ Billing Records           │
+                 │ Alerts                    │
+                 └───────────────────────────┘
+```
+
+---
+
+# 🧠 AI Architecture
+
+```text
+                  Billing Data
+                       │
+                       ▼
+              ┌─────────────────┐
+              │ Data Processing │
+              │    Pandas       │
+              └────────┬────────┘
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+          ▼                         ▼
+ ┌─────────────────┐       ┌──────────────────┐
+ │ Cost Prediction │       │ Waste Detection  │
+ │                 │       │                  │
+ │ Linear Trend    │       │ Rule Engine      │
+ │ NumPy           │       │       +          │
+ │                 │       │ Isolation Forest │
+ └────────┬────────┘       └────────┬─────────┘
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+              ┌──────────────────┐
+              │ Combined Insights│
+              │                  │
+              │ Recommendations  │
+              │ Savings          │
+              │ Forecast         │
+              └──────────────────┘
+```
+
+---
+
+# 🛠️ Technology Stack
+
+## Backend
+
+| Technology       | Purpose                      |
+| ---------------- | ---------------------------- |
+| Python           | Backend programming language |
+| FastAPI          | REST API framework           |
+| Uvicorn          | ASGI server                  |
+| SQLAlchemy       | Database ORM                 |
+| PostgreSQL       | Relational database          |
+| Pandas           | Billing CSV processing       |
+| NumPy            | Numerical calculations       |
+| scikit-learn     | Machine learning             |
+| python-jose      | JWT authentication           |
+| Passlib / bcrypt | Password hashing             |
+| Pydantic         | Data validation              |
+
+## Frontend
+
+| Technology   | Purpose                         |
+| ------------ | ------------------------------- |
+| React        | User interface                  |
+| Vite         | Frontend development/build tool |
+| React Router | Page navigation                 |
+| Recharts     | Charts and visualization        |
+| Lucide React | Icons                           |
+| CSS          | Custom UI styling               |
+
+---
+
+# 📁 Project Structure
+
+```text
 finops-ai/
-├── backend/          ← Python server (the "brain" — handles data and AI)
-│   ├── main.py            ← Entry point, starts the server
-│   ├── models.py          ← Database table definitions
-│   ├── schemas.py         ← Data shapes (what data looks like going in/out)
-│   ├── database.py        ← Database connection setup
-│   ├── auth.py            ← Login / signup logic
-│   ├── requirements.txt   ← Python packages needed
-│   ├── routers/           ← API endpoints (routes)
-│   │   ├── auth_router.py      ← /auth/register, /auth/login
-│   │   ├── upload_router.py    ← /upload (upload CSV billing data)
-│   │   ├── costs_router.py     ← /costs (get spending data)
-│   │   └── insights_router.py  ← /insights/waste, /insights/predict
-│   └── ai/                ← The AI/ML modules
-│       ├── waste_detection.py   ← Detects wasted cloud resources
-│       └── cost_prediction.py   ← Predicts future spending
 │
-└── frontend/         ← React web app (the "face" — what users see)
-    ├── index.html         ← The single HTML file (React lives inside this)
-    ├── package.json       ← JavaScript packages needed
-    ├── vite.config.js     ← Build tool configuration
-    └── src/
-        ├── main.jsx           ← Entry point for React
-        ├── App.jsx            ← Routing between pages
-        ├── api.js             ← All calls to the backend API
-        ├── AuthContext.jsx    ← Manages who is logged in
-        ├── index.css          ← All styling
-        ├── components/        ← Reusable UI pieces
-        └── pages/             ← Each screen/page of the app
-            ├── AuthPage.jsx        ← Login / Register screen
-            ├── Dashboard.jsx       ← Main overview of spending
-            ├── UploadPage.jsx      ← Upload CSV billing file
-            ├── WastePage.jsx       ← Shows wasted resources
-            ├── PredictionsPage.jsx ← Future cost forecasts
-            └── AlertsPage.jsx      ← Budget alert management
-```
-
----
-
-## 🧠 How Does the AI Work?
-
-### 1. Waste Detection (`backend/ai/waste_detection.py`)
-Uses **two layers** to find resources wasting money:
-
-| Layer | Type | What it does |
-|-------|------|--------------|
-| Rule Engine | Deterministic | Flags idle servers (CPU < 5%), oversized instances, overpriced storage |
-| Anomaly Detector | ML — IsolationForest | Flags resources whose cost is statistically abnormal given their usage |
-
-**Example finding:** "Server `ec2-prod-03` ran for 720 hours but had only 2% CPU usage — you're paying for nothing. Estimated saving: $142/month."
-
-### 2. Cost Prediction (`backend/ai/cost_prediction.py`)
-Uses **Linear Regression** (numpy polyfit) to:
-- Look at your past daily spending
-- Fit a trend line (rising / falling / flat)
-- Project that trend into the future (7, 14, 30, 60, or 90 days)
-- Add a confidence band (uncertainty range)
-
-**Example output:** "Based on your trend, you'll spend ~$4,200 next 30 days (range: $3,800–$4,600)."
-
----
-
-## 🛠️ Tech Stack (Technologies Used)
-
-### Backend (Server / API)
-| Technology | What it does |
-|------------|--------------|
-| **Python 3.14** | Programming language |
-| **FastAPI** | Web framework — creates the API endpoints |
-| **Uvicorn** | The actual web server that runs FastAPI |
-| **SQLAlchemy** | Talks to the database |
-| **SQLite** (`finops.db`) | Stores users, uploaded data, alerts |
-| **Pandas** | Reads and processes CSV billing data |
-| **NumPy** | Math operations for predictions |
-| **scikit-learn** | IsolationForest ML model for anomaly detection |
-| **python-jose + passlib** | Secure login (JWT tokens + password hashing) |
-
-### Frontend (Web App / UI)
-| Technology | What it does |
-|------------|--------------|
-| **React 18** | JavaScript UI framework |
-| **Vite** | Fast development build tool |
-| **React Router** | Navigation between pages |
-| **Recharts** | Beautiful charts and graphs |
-| **Lucide React** | Icons |
-| **Vanilla CSS** | Custom styling |
-
----
-
-## 🚀 How to Run the Project (Step by Step)
-
-### ✅ Prerequisites (Install these first)
-- **Python 3.9+** → https://python.org/downloads
-- **Node.js 18+** → https://nodejs.org
-
----
-
-### Step 1 — Install Backend Dependencies
-
-Open a terminal and run:
-
-```powershell
-cd backend
-pip install --prefer-binary -r requirements.txt
-```
-
-> This installs all Python packages the backend needs.
-
----
-
-### Step 2 — Start the Backend Server
-
-```powershell
-cd backend
-uvicorn main:app --reload --port 8000
-```
-
-You should see:
-```
-INFO:  Uvicorn running on http://127.0.0.1:8000
-INFO:  Application startup complete.
-```
-
-> The backend is now running. **Leave this terminal open.**
-
----
-
-### Step 3 — Install Frontend Dependencies
-
-Open a **new terminal** and run:
-
-```powershell
-cd frontend
-npm install
-```
-
-> This installs all JavaScript packages. Only needed once.
-
----
-
-### Step 4 — Start the Frontend
-
-```powershell
-cd frontend
-npm run dev
-```
-
-You should see:
-```
-  VITE v5.x  ready in 300ms
-  ➜  Local:   http://localhost:5173/
-```
-
----
-
-### Step 5 — Open the App
-
-Open your browser and visit: **http://localhost:5173**
-
-You'll see the login screen. Register a new account and start exploring!
-
----
-
-## 📖 How to Use the App
-
-### 1. Register / Login
-- Open the app → click **Register**
-- Create an account with email and password
-- Login to access the dashboard
-
-### 2. Upload Billing Data
-- Go to the **Upload** page
-- Upload a CSV with your cloud billing data
-- Required columns: `date`, `service`, `cost`, `resource_id`, `usage_hours`, `avg_cpu_utilization`, `storage_gb`
-- 💡 A ready-made sample file is included: `backend/sample_billing_data.csv` — use it to try the app!
-
-### 3. View the Dashboard
-- After uploading, go to **Dashboard**
-- See total spending, cost breakdown by service, and daily trends
-
-### 4. Find Wasted Resources
-- Go to the **Waste** page
-- The AI lists resources wasting money, sorted by savings potential
-- Each finding shows: the problem, monthly cost, estimated saving, and recommendation
-
-### 5. Predict Future Costs
-- Go to the **Predictions** page
-- Choose a forecast horizon: 7, 14, 30, 60, or 90 days
-- See the forecast chart with a confidence band
-
-### 6. Set Budget Alerts
-- Go to the **Alerts** page
-- Create alerts for services (e.g. "alert if EC2 exceeds $500/month")
-- Alerts are automatically checked and marked triggered when exceeded
-
----
-
-## 🔌 API Endpoints
-
-The backend exposes a REST API. Explore it interactively at:
-**http://localhost:8000/docs** (Swagger UI — auto-generated!)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/register` | Create a new user account |
-| POST | `/auth/login` | Login and receive access token |
-| POST | `/upload` | Upload a CSV billing file |
-| GET | `/costs/summary` | Get total spending summary |
-| GET | `/costs/by-service` | Get cost breakdown by service |
-| GET | `/costs/daily` | Get daily spending trend |
-| GET | `/insights/waste` | Get AI waste detection findings |
-| GET | `/insights/predict?horizon=30` | Get 30-day cost prediction |
-| GET | `/alerts` | List all budget alerts |
-| POST | `/alerts` | Create a budget alert |
-| DELETE | `/alerts/{id}` | Delete an alert |
-
----
-
-## 🗂️ Data Flow — How Everything Connects
-
-```
-User uploads CSV
-       │
-       ▼
-  FastAPI /upload endpoint
-       │
-       ▼
-  Pandas reads CSV → stores rows in SQLite (finops.db)
-       │
-       ├──► GET /costs/summary    → Dashboard charts
-       │
-       ├──► GET /insights/waste   → AI Waste Detection → Waste page
-       │
-       └──► GET /insights/predict → ML Cost Forecast  → Predictions page
-                │
-                ▼
-      React Frontend renders charts, tables, and alerts
-```
-
----
-
-## ❓ Common Problems & Fixes
-
-| Problem | Fix |
-|---------|-----|
-| `uvicorn` not recognized | Run `pip install uvicorn` |
-| `npm run dev` fails with "vite not found" | Run `npm install` in the frontend folder |
-| `pandas` fails to install | Use `pip install --prefer-binary pandas` |
-| Backend starts but frontend can't connect | Make sure backend is running on port 8000 |
-| Login fails | Make sure you registered first |
-| Port 8000 already in use | Change to `--port 8001` and update `frontend/src/api.js` |
-
----
-
-## 📚 Concepts to Learn (for Students)
-
-| Concept | Where it's used |
-|---------|----------------|
-| REST APIs | Backend ↔ Frontend communication |
-| JWT Authentication | Secure login in `auth.py` |
-| SQLAlchemy ORM | Database access in `models.py` |
-| React Hooks (`useState`, `useEffect`) | All frontend pages |
-| IsolationForest (ML) | `ai/waste_detection.py` |
-| Linear Regression | `ai/cost_prediction.py` |
-| Pandas DataFrames | CSV processing in `upload_router.py` |
-| Recharts | Charts in `Dashboard.jsx`, `PredictionsPage.jsx` |
-
----
-
-*Built with ❤️ — A full-stack AI-powered FinOps platform for learning and real-world use.*
- — Cloud Cost Optimization Platform
-
-> AI-powered cloud cost management: predict spend, detect waste, and act on intelligent recommendations — built as a full-stack portfolio project demonstrating AI + Cloud + industry-grade engineering.
-
----
-
-## 🚀 Live Demo Flow
-
-```
-1. Register → sign in
-2. Upload → sample_billing_data.csv  (or your own AWS/Azure export)
-3. Dashboard → see cost overview + AI insight cards
-4. Predictions → 7–90 day forecast with confidence band
-5. Waste → per-resource findings sorted by savings potential
-6. Alerts → auto-generated threshold warnings
-```
-
----
-
-## 🧠 AI Components
-
-### 1. Cost Prediction (Linear Regression)
-**File:** `backend/ai/cost_prediction.py`
-
-Fits a linear trend (OLS via `numpy.polyfit`) to the daily cost time-series, projects it `N` days forward, and computes a confidence band from the residual standard deviation (σ × √horizon). This is intentionally explainable — every step can be walked through in a technical interview.
-
-**Upgrade path:** swap the `polyfit` model for an LSTM (PyTorch / Keras) to capture non-linear seasonality without changing any API contract.
-
-### 2. Waste Detection (Rules + Isolation Forest)
-**File:** `backend/ai/waste_detection.py`
-
-**Layer 1 — Rule engine** (deterministic, explainable FinOps heuristics):
-| Rule | Threshold | Action |
-|------|-----------|--------|
-| Idle resource | CPU < 5% and hours ≥ 100/month | Stop / schedule |
-| Oversized instance | Large family + CPU < 30% | Downgrade tier |
-| Inefficient storage | Cost/GB > 2× fleet median | Move to cold tier |
-
-**Layer 2 — Anomaly detection** (`sklearn.IsolationForest`):
-Trains on `[usage_hours, avg_cpu_utilization, cost_per_hour]` across the fleet, flags resources whose cost is statistically anomalous relative to their own usage pattern. Contamination factor = 0.10.
-
-### 3. Recommendation Engine
-Built into the waste detection output — every finding includes a concrete, actionable `recommendation` string surfaced in the UI.
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  React Frontend (Vite + Recharts)                       │
-│  Dashboard │ Predictions │ Waste │ Alerts │ Upload      │
-└───────────────────────┬─────────────────────────────────┘
-                        │ REST (JWT Bearer)
-┌───────────────────────▼─────────────────────────────────┐
-│  FastAPI Backend                                         │
-│  /auth  /billing  /costs  /ai                           │
-│                                                          │
-│  ┌──────────────┐  ┌────────────────────────────────┐   │
-│  │ SQLAlchemy   │  │ AI Engine                      │   │
-│  │ ORM          │  │ cost_prediction.py             │   │
-│  │              │  │ waste_detection.py             │   │
-│  └──────┬───────┘  └────────────────────────────────┘   │
-│         │                                                │
-│  ┌──────▼───────┐                                        │
-│  │ SQLite (dev) │  → swap URL for PostgreSQL in prod     │
-│  └──────────────┘                                        │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Cloud Deployment (AWS Equivalent)
-| Component | Dev | Production (AWS) |
-|-----------|-----|-----------------|
-| Frontend  | Vite dev server / Vite build | S3 + CloudFront / Vercel |
-| Backend   | Uvicorn local | EC2 / ECS / App Runner |
-| Database  | SQLite file   | RDS PostgreSQL |
-| File storage | local | S3 (billing CSV uploads) |
-| CI/CD     | manual        | GitHub Actions → ECR → ECS |
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, React Router 6, Recharts, Lucide Icons, Vite |
-| Backend  | Python 3.11, FastAPI, SQLAlchemy, Pydantic v2 |
-| AI/ML    | NumPy, Pandas, scikit-learn (IsolationForest) |
-| Auth     | JWT (python-jose), bcrypt (passlib) |
-| Database | SQLite (dev) → PostgreSQL (prod, zero code change) |
-| Styling  | Custom CSS design system (dark industrial FinOps aesthetic) |
-
----
-
-## ⚙️ Setup & Run
-
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-
-# Optional: generate 90-day synthetic demo data
-python generate_sample_data.py
-
-# Start API server
-uvicorn main:app --reload --port 8000
-# API docs: http://localhost:8000/docs
-```
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-# App: http://localhost:5173
-```
-
-### Quick start (both together)
-```bash
-# Terminal 1
-cd backend && uvicorn main:app --reload
-
-# Terminal 2
-cd frontend && npm run dev
-```
-
-### Default demo account
-After running the backend, register at http://localhost:5173/login — the first user becomes admin automatically. Upload `backend/sample_billing_data.csv` to see full AI insights.
-
----
-
-## 📁 Project Structure
-
-```
-finops-ai/
+├── .env.example
+├── .gitignore
+├── README.md
+├── API_GUIDE.md
+├── LEARN.md
+├── start.sh
+│
 ├── backend/
-│   ├── main.py                   # FastAPI app, CORS, route registration
-│   ├── database.py               # SQLAlchemy engine + session
-│   ├── models.py                 # ORM: User, BillingRecord
-│   ├── schemas.py                # Pydantic request/response schemas
-│   ├── auth.py                   # JWT creation + validation
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── auth.py
 │   ├── requirements.txt
-│   ├── generate_sample_data.py   # Synthetic billing CSV generator
+│   ├── generate_sample_data.py
+│   ├── sample_billing_data.csv
+│   │
 │   ├── ai/
-│   │   ├── cost_prediction.py    # Linear regression forecasting
-│   │   └── waste_detection.py    # Rule engine + Isolation Forest
+│   │   ├── __init__.py
+│   │   ├── cost_prediction.py
+│   │   └── waste_detection.py
+│   │
 │   └── routers/
-│       ├── auth_router.py        # POST /auth/register, /auth/login
-│       ├── upload_router.py      # POST /billing/upload
-│       ├── costs_router.py       # GET /costs/summary, /daily, /by-resource
-│       └── insights_router.py    # GET /ai/prediction, /waste, /insights
+│       ├── __init__.py
+│       ├── auth_router.py
+│       ├── upload_router.py
+│       ├── costs_router.py
+│       └── insights_router.py
 │
 └── frontend/
     ├── index.html
-    ├── vite.config.js            # Dev proxy → backend:8000
+    ├── package.json
+    ├── package-lock.json
+    ├── vite.config.js
+    │
     └── src/
-        ├── App.jsx               # Router + auth guard
-        ├── AuthContext.jsx       # Global auth state (JWT decode)
-        ├── api.js                # Typed API client
-        ├── index.css             # Design system (tokens, components)
+        ├── App.jsx
+        ├── AuthContext.jsx
+        ├── api.js
+        ├── index.css
+        │
         ├── components/
         │   └── Sidebar.jsx
+        │
         └── pages/
-            ├── AuthPage.jsx      # Login / register
-            ├── Dashboard.jsx     # KPI cards + charts
-            ├── PredictionsPage.jsx # Forecast + confidence band
-            ├── WastePage.jsx     # Findings table + severity filter
-            ├── AlertsPage.jsx    # Auto-generated threshold alerts
-            └── UploadPage.jsx    # Drag-and-drop CSV upload
+            ├── AuthPage.jsx
+            ├── Dashboard.jsx
+            ├── PredictionsPage.jsx
+            ├── WastePage.jsx
+            ├── AlertsPage.jsx
+            └── UploadPage.jsx
 ```
 
 ---
 
-## 🔐 Security
+# 🔌 API Endpoints
 
-- JWT Bearer tokens (HS256), 24-hour expiry
-- Passwords hashed with bcrypt (via passlib)
-- Role-based access: first registered user → admin; subsequent → user
-- All data routes are authenticated; users only see their own records
-- Move `FINOPS_SECRET_KEY` to env variable / secrets manager before production
+All protected endpoints require a JWT Bearer token.
+
+## Authentication
+
+| Method | Endpoint         | Description           |
+| ------ | ---------------- | --------------------- |
+| POST   | `/auth/register` | Register a new user   |
+| POST   | `/auth/login`    | Login and receive JWT |
+
+## Billing
+
+| Method | Endpoint          | Description        |
+| ------ | ----------------- | ------------------ |
+| POST   | `/billing/upload` | Upload billing CSV |
+
+## Cost Analytics
+
+| Method | Endpoint            | Description               |
+| ------ | ------------------- | ------------------------- |
+| GET    | `/costs/summary`    | Overall cost summary      |
+| GET    | `/costs/by-service` | Cost breakdown by service |
+| GET    | `/costs/daily`      | Daily spending trend      |
+
+## AI
+
+| Method | Endpoint         | Description                         |
+| ------ | ---------------- | ----------------------------------- |
+| GET    | `/ai/prediction` | Predict future cloud costs          |
+| GET    | `/ai/waste`      | Detect potentially wasted resources |
+| GET    | `/ai/insights`   | Generate combined AI insights       |
+
+## Documentation
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+FastAPI automatically generates interactive Swagger documentation.
 
 ---
 
-## 🗺️ Roadmap (v2 Ideas)
+# 🚀 How to Run
 
-- [ ] LSTM cost forecasting (PyTorch) for seasonal workloads
-- [ ] Direct AWS Cost & Usage Report (CUR) S3 sync
-- [ ] Multi-user team workspaces
-- [ ] Email / Slack alert notifications
-- [ ] Reserved Instance / Savings Plan ROI calculator
-- [ ] Kubernetes pod cost attribution
-- [ ] PostgreSQL + Docker Compose production setup
+## Prerequisites
+
+Install:
+
+* Python 3.10+
+* Node.js 18+
+* PostgreSQL
 
 ---
 
-## 📄 License
+## 1. Clone the Repository
 
-MIT — free to use, fork, and adapt for your own portfolio or organisation.
+```bash
+git clone https://github.com/IT24100052/finops-ai.git
+cd finops-ai
+```
+
+---
+
+## 2. Backend Setup
+
+```powershell
+cd backend
+```
+
+Create and activate a virtual environment:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+Install dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+---
+
+## 3. Configure Environment Variables
+
+Create:
+
+```text
+backend/.env
+```
+
+Add the required database and authentication configuration.
+
+Example:
+
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/finops
+JWT_SECRET=your-secret-key
+```
+
+> Never commit the real `.env` file to GitHub.
+
+Use `.env.example` as the safe template.
+
+---
+
+## 4. Start Backend
+
+From the `backend` directory:
+
+```powershell
+uvicorn main:app --reload --port 8000
+```
+
+Backend:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## 5. Start Frontend
+
+Open another terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend:
+
+```text
+http://localhost:5173
+```
+
+---
+
+# 🧪 Tested Application Flow
+
+The complete application has been tested using the following flow:
+
+```text
+Register
+   ↓
+Login
+   ↓
+Receive JWT
+   ↓
+Upload billing CSV
+   ↓
+1,350 billing records inserted
+   ↓
+Dashboard
+   ↓
+Cost Summary
+   ↓
+AI Prediction
+   ↓
+AI Waste Detection
+   ↓
+AI Combined Insights
+   ↓
+Monitoring Alerts
+```
+
+### Tested Billing Upload
+
+```text
+Rows inserted: 1,350
+Rows failed: 0
+```
+
+### Tested Cost Summary
+
+```text
+Total Cost: $5,084.02
+Records: 1,350
+```
+
+### Tested AI Prediction
+
+```text
+30-day predicted cost: $1,859.60
+Trend: Flat
+```
+
+### Tested Waste Detection
+
+```text
+Issues detected: 6
+High severity: 3
+Medium severity: 2
+Low severity: 1
+
+Potential monthly savings: $2,281.92
+```
+
+### Tested Combined Insights
+
+```text
+Total cost: $5,084.02
+Potential savings: $2,281.92
+Waste percentage: 44.9%
+```
+
+---
+
+# 🔐 Security
+
+The application implements:
+
+* JWT Bearer authentication
+* Password hashing
+* Protected API routes
+* User-specific billing data
+* Environment-based secrets
+* `.env` excluded from Git
+* `.venv` excluded from Git
+
+### Important
+
+Never commit:
+
+```text
+.env
+.venv/
+```
+
+The repository contains:
+
+```text
+.env.example
+```
+
+as a safe configuration template.
+
+---
+
+# 📊 Example Dashboard
+
+The dashboard provides a centralized view of:
+
+```text
+┌─────────────────────────────────────────────┐
+│              FINOPS AI                      │
+├──────────────┬──────────────┬───────────────┤
+│ Total Cost   │ Records      │ Potential     │
+│ $5,084.02    │ 1,350        │ Savings       │
+│              │              │ $2,281.92     │
+├──────────────┴──────────────┴───────────────┤
+│                                             │
+│             Cost Analytics                  │
+│                                             │
+├─────────────────────────────────────────────┤
+│ AI Insights                                 │
+│                                             │
+│ 45% Potential Waste                         │
+│ Next 30-Day Forecast: $1,859.60             │
+│ Top Issue: Idle EC2 Resource                │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+# 🎓 Learning Concepts Demonstrated
+
+This project demonstrates practical knowledge of:
+
+* REST API development
+* FastAPI
+* React
+* JWT authentication
+* Password hashing
+* PostgreSQL
+* SQLAlchemy ORM
+* CSV processing
+* Pandas
+* NumPy
+* Machine Learning
+* Isolation Forest
+* Linear regression
+* Data visualization
+* API integration
+* Frontend/backend architecture
+* Environment variables
+* Git and GitHub
+* Cloud FinOps concepts
+
+---
+
+# ☁️ Future Improvements
+
+Possible future versions could include:
+
+* [ ] AWS Cost & Usage Report integration
+* [ ] Azure Cost Management integration
+* [ ] Google Cloud billing integration
+* [ ] LSTM/advanced forecasting
+* [ ] Email notifications
+* [ ] Slack notifications
+* [ ] Team workspaces
+* [ ] AWS Savings Plan recommendations
+* [ ] Reserved Instance optimization
+* [ ] Kubernetes cost monitoring
+* [ ] Docker deployment
+* [ ] PostgreSQL production deployment
+* [ ] Cloud deployment with CI/CD
+
+---
+
+# 📄 License
+
+MIT License.
+
+This project is developed for educational, portfolio, and demonstration purposes.
+
+---
+
+# 👨‍💻 Project
+
+**FinOps AI — Cloud Cost Optimization Platform**
+
+GitHub:
+
+[https://github.com/IT24100052/finops-ai](https://github.com/IT24100052/finops-ai)
+
+Built with:
+
+**React + FastAPI + PostgreSQL + Machine Learning**
+
+````
+
+
+
+
+
 
