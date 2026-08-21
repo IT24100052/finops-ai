@@ -1,4 +1,4 @@
-const BASE = ''  // Vite proxy handles /auth, /costs, /ai, /billing, /budgets
+const BASE = 'https://finops-ai-backend-ysh7.onrender.com'
 
 function getToken() {
   return localStorage.getItem('finops_token')
