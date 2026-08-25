@@ -1,22 +1,22 @@
-# 💸 FinOps AI — Cloud Cost Optimization Platform
+#  FinOps AI — Cloud Cost Optimization Platform
 
 > **FinOps AI** is a full-stack cloud cost intelligence platform that helps organizations understand, analyze, predict, and reduce their cloud spending using data analytics, machine learning, and intelligent recommendations.
 
 ---
 
-## 📌 Project Overview
+##  Project Overview
 
 Cloud providers such as AWS, Azure, and Google Cloud generate large amounts of billing data. Understanding where money is being spent and identifying unnecessary costs can be difficult.
 
 **FinOps AI** provides a centralized dashboard that allows users to:
 
-- 📤 Upload cloud billing data using CSV files
-- 📊 Analyze total and service-level cloud costs
-- 🤖 Detect potentially wasted cloud resources
-- 📈 Predict future cloud spending
-- 💡 Generate AI-powered cost insights
-- 🔔 Identify high-priority cost and waste alerts
-- 💰 Estimate potential monthly savings
+-  Upload cloud billing data using CSV files
+-  Analyze total and service-level cloud costs
+-  Detect potentially wasted cloud resources
+-  Predict future cloud spending
+-  Generate AI-powered cost insights
+-  Identify high-priority cost and waste alerts
+-  Estimate potential monthly savings
 
 ### In simple terms
 
@@ -24,9 +24,9 @@ Cloud providers such as AWS, Azure, and Google Cloud generate large amounts of b
 
 ---
 
-# ✨ Main Features
+#  Main Features
 
-## 🔐 Authentication
+##  Authentication
 
 - User registration
 - User login
@@ -38,7 +38,7 @@ Cloud providers such as AWS, Azure, and Google Cloud generate large amounts of b
 
 ---
 
-## 📤 Billing Data Upload
+##  Billing Data Upload
 
 Users can upload billing information through a CSV file.
 
@@ -94,7 +94,7 @@ Rows failed: 0
 
 ---
 
-# 📊 Cost Analytics
+#  Cost Analytics
 
 FinOps AI analyzes uploaded billing records and provides cost summaries.
 
@@ -146,7 +146,7 @@ The dashboard displays the same information through interactive cards and charts
 
 ---
 
-# 🤖 AI Module
+#  AI Module
 
 The AI module contains three main API endpoints.
 
@@ -158,7 +158,7 @@ GET /ai/insights
 
 ---
 
-## 📈 1. Cost Prediction
+##  1. Cost Prediction
 
 ### Endpoint
 
@@ -204,7 +204,7 @@ The frontend provides forecast horizons including:
 
 ---
 
-# 🗑️ 2. AI Waste Detection
+#  2. AI Waste Detection
 
 ### Endpoint
 
@@ -282,7 +282,7 @@ The UI displays:
 
 ---
 
-# 💡 3. Combined AI Insights
+#  3. Combined AI Insights
 
 ### Endpoint
 
@@ -330,7 +330,7 @@ The dashboard also identifies the most expensive waste issue.
 
 ---
 
-# 🔔 Monitoring & Alerts
+#  Monitoring & Alerts
 
 The Monitoring section provides cost and waste warnings.
 
@@ -353,7 +353,7 @@ Alerts help users quickly identify areas that require attention.
 
 ---
 
-# 🖥️ Frontend
+#  Frontend
 
 The frontend is built using:
 
@@ -433,7 +433,7 @@ Allows users to:
 
 ---
 
-# 🏗️ System Architecture
+#  System Architecture
 
 ```text
                  ┌───────────────────────────┐
@@ -471,7 +471,7 @@ Allows users to:
 
 ---
 
-# 🧠 AI Architecture
+#  AI Architecture
 
 ```text
                   Billing Data
@@ -506,7 +506,7 @@ Allows users to:
 
 ---
 
-# 🛠️ Technology Stack
+#  Technology Stack
 
 ## Backend
 
@@ -537,7 +537,7 @@ Allows users to:
 
 ---
 
-# 📁 Project Structure
+#  Project Structure
 
 ```text
 finops-ai/
@@ -597,7 +597,7 @@ finops-ai/
 
 ---
 
-# 🔌 API Endpoints
+#  API Endpoints
 
 All protected endpoints require a JWT Bearer token.
 
@@ -640,7 +640,7 @@ FastAPI automatically generates interactive Swagger documentation.
 
 ---
 
-# 🚀 How to Run
+#  How to Run
 
 ## Prerequisites
 
@@ -745,7 +745,7 @@ http://localhost:5173
 
 ---
 
-# 🧪 Tested Application Flow
+#  Tested Application Flow
 
 The complete application has been tested using the following flow:
 
@@ -815,7 +815,7 @@ Waste percentage: 44.9%
 
 ---
 
-# 🔐 Security
+#  Security
 
 The application implements:
 
@@ -846,7 +846,7 @@ as a safe configuration template.
 
 ---
 
-# 📊 Example Dashboard
+#  Example Dashboard
 
 The dashboard provides a centralized view of:
 
@@ -872,7 +872,7 @@ The dashboard provides a centralized view of:
 
 ---
 
-# 🎓 Learning Concepts Demonstrated
+#  Learning Concepts Demonstrated
 
 This project demonstrates practical knowledge of:
 
@@ -898,7 +898,7 @@ This project demonstrates practical knowledge of:
 
 ---
 
-# ☁️ Future Improvements
+#  Future Improvements
 
 Possible future versions could include:
 
@@ -918,7 +918,7 @@ Possible future versions could include:
 
 ---
 
-# 📄 License
+#  License
 
 MIT License.
 
@@ -926,7 +926,7 @@ This project is developed for educational, portfolio, and demonstration purposes
 
 ---
 
-# 👨‍💻 Project
+# 👨 Project
 
 **FinOps AI — Cloud Cost Optimization Platform**
 
@@ -937,11 +937,4 @@ GitHub:
 Built with:
 
 **React + FastAPI + PostgreSQL + Machine Learning**
-
-````
-
-
-
-
-
 
