@@ -1,4 +1,6 @@
-const BASE = 'https://finops-ai-backend-ysh7.onrender.com'
+// Use empty BASE so all requests go through Vite's proxy → localhost:8000
+// (Proxy rules defined in vite.config.js: /auth, /billing, /costs, /ai, /budgets)
+const BASE = import.meta.env.VITE_API_URL || ''
 
 function getToken() {
   return localStorage.getItem('finops_token')
@@ -73,30 +75,30 @@ export const api = {
   clearBilling: () => request('/billing/clear', { method: 'DELETE' }),
 
   // ── Costs ────────────────────────────────────────────────────────────────
-  getSummary:        (filters = {}) => request(`/costs/summary${buildQuery(filters)}`),
-  getDailyCosts:     (filters = {}) => request(`/costs/daily${buildQuery(filters)}`),
-  getByResource:     ()             => request('/costs/by-resource'),
-  getByProvider:     (filters = {}) => request(`/costs/by-provider${buildQuery(filters)}`),
-  getByRegion:       (filters = {}) => request(`/costs/by-region${buildQuery(filters)}`),
-  getByService:      (filters = {}) => request(`/costs/by-service${buildQuery(filters)}`),
-  getByTeam:         (filters = {}) => request(`/costs/by-team${buildQuery(filters)}`),
-  getByProject:      (filters = {}) => request(`/costs/by-project${buildQuery(filters)}`),
-  getByEnvironment:  (filters = {}) => request(`/costs/by-environment${buildQuery(filters)}`),
+  getSummary: (filters = {}) => request(`/costs/summary${buildQuery(filters)}`),
+  getDailyCosts: (filters = {}) => request(`/costs/daily${buildQuery(filters)}`),
+  getByResource: () => request('/costs/by-resource'),
+  getByProvider: (filters = {}) => request(`/costs/by-provider${buildQuery(filters)}`),
+  getByRegion: (filters = {}) => request(`/costs/by-region${buildQuery(filters)}`),
+  getByService: (filters = {}) => request(`/costs/by-service${buildQuery(filters)}`),
+  getByTeam: (filters = {}) => request(`/costs/by-team${buildQuery(filters)}`),
+  getByProject: (filters = {}) => request(`/costs/by-project${buildQuery(filters)}`),
+  getByEnvironment: (filters = {}) => request(`/costs/by-environment${buildQuery(filters)}`),
 
   // ── Resources ────────────────────────────────────────────────────────────
-  getResources:      (filters = {}) => request(`/costs/resources${buildQuery(filters)}`),
-  getResource:       (id)           => request(`/costs/resources/${encodeURIComponent(id)}`),
+  getResources: (filters = {}) => request(`/costs/resources${buildQuery(filters)}`),
+  getResource: (id) => request(`/costs/resources/${encodeURIComponent(id)}`),
 
   // ── AI ───────────────────────────────────────────────────────────────────
-  getPrediction:     (days = 30)    => request(`/ai/prediction?horizon_days=${days}`),
-  getWaste:          ()             => request('/ai/waste'),
-  getInsights:       ()             => request('/ai/insights'),
-  getFinopsScore:    ()             => request('/ai/finops-score'),
-  getDataQuality:    ()             => request('/ai/data-quality'),
+  getPrediction: (days = 30) => request(`/ai/prediction?horizon_days=${days}`),
+  getWaste: () => request('/ai/waste'),
+  getInsights: () => request('/ai/insights'),
+  getFinopsScore: () => request('/ai/finops-score'),
+  getDataQuality: () => request('/ai/data-quality'),
 
   // ── Budgets ──────────────────────────────────────────────────────────────
-  getBudgets:    ()         => request('/budgets'),
-  createBudget:  (data)     => request('/budgets', { method: 'POST', body: JSON.stringify(data) }),
-  updateBudget:  (id, data) => request(`/budgets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteBudget:  (id)       => request(`/budgets/${id}`, { method: 'DELETE' }),
+  getBudgets: () => request('/budgets'),
+  createBudget: (data) => request('/budgets', { method: 'POST', body: JSON.stringify(data) }),
+  updateBudget: (id, data) => request(`/budgets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBudget: (id) => request(`/budgets/${id}`, { method: 'DELETE' }),
 }

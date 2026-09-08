@@ -29,3 +29,5 @@ LEARN.md
 .idea/
 .DS_Store
 Thumbs.db
+# Local billing data
+*.csv
