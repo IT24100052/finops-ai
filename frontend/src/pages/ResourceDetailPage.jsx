@@ -152,9 +152,9 @@ export default function ResourceDetailPage() {
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
                     tickLine={false} axisLine={false} tickFormatter={v => `$${v}`} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="cost" stroke="#00d4aa" strokeWidth={2}
+                  <Area type="monotone" dataKey="cost" stroke="var(--accent)" strokeWidth={2}
                     fill="url(#resGrad)" dot={false}
-                    activeDot={{ r: 4, fill: '#00d4aa', stroke: '#0a0c0f', strokeWidth: 2 }} />
+                    activeDot={{ r: 4, fill: 'var(--accent)', stroke: '#ffffff', strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}

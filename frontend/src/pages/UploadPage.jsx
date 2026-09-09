@@ -66,16 +66,16 @@ export default function UploadPage() {
       <div className="page-body" style={{ maxWidth: 640 }}>
 
         {/* Format info */}
-        <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card" style={{ marginBottom: 24 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
             <div className="section-title" style={{ marginBottom:0 }}>Required CSV format</div>
             <button className="btn btn-ghost" style={{ fontSize:'0.75rem', padding:'5px 12px' }} onClick={downloadSampleCSV}>
               <Download size={13} /> Download sample
             </button>
           </div>
-          <div style={{ fontFamily:'var(--font-mono)', fontSize:'0.72rem', color:'var(--text-secondary)', lineHeight:1.8 }}>
-            <div style={{ color:'var(--accent)', marginBottom:4 }}>{SAMPLE_HEADER}</div>
-            {SAMPLE_ROWS.map((r,i) => <div key={i} style={{ color:'var(--text-muted)' }}>{r}</div>)}
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:'0.72rem', color:'var(--text-secondary)', lineHeight:1.8, whiteSpace:'pre-wrap', wordBreak:'break-all', overflowWrap:'anywhere' }}>
+            <div style={{ color:'var(--accent)', marginBottom:4, wordBreak:'break-all', overflowWrap:'anywhere' }}>{SAMPLE_HEADER}</div>
+            {SAMPLE_ROWS.map((r,i) => <div key={i} style={{ color:'var(--text-muted)', wordBreak:'break-all', overflowWrap:'anywhere' }}>{r}</div>)}
           </div>
           <div className="divider" />
           <div style={{ fontSize:'0.78rem', color:'var(--text-secondary)', lineHeight:1.6 }}>
