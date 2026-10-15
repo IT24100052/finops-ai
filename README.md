@@ -827,22 +827,28 @@ The application implements:
 * `.env` excluded from Git
 * `.venv` excluded from Git
 
-### Important
+### Environment Configuration
 
-Never commit:
+Configure the required environment variables in your deployment environment or `.env` file (see `.env.example`):
 
-```text
-.env
-.venv/
+- `DATABASE_URL`: Connection URL for PostgreSQL (e.g. `postgresql://user:pass@host:5432/dbname`) or local SQLite.
+- `FINOPS_SECRET_KEY`: Strong cryptographic key of at least 32 characters used for JWT signing and token verification.
+
+### Supported Cloud Ingestion & Normalization
+
+The billing ingestion engine automatically normalizes vendor-specific CSV exports:
+- **AWS**: Cost & Usage Report (CUR) column aliases (`lineitem_usagestartdate`, `lineitem_productcode`, `lineitem_resourceid`, `lineitem_unblendedcost`, etc.).
+- **Azure**: Cost Management export aliases (`date`, `servicename`, `resourceid`, `pretaxcost`, `subscriptionid`, etc.).
+- **GCP**: Cloud Billing export aliases with dotted or underscore column names (`service.description` / `service_description`, `project.id` / `project_id`, `resource.name` / `resource_name`, `usage_start_time`, etc.).
+- **Generic**: Standard schema (`date`, `service`, `resource_id`, `cost`, and optional metadata).
+
+### Automated Testing
+
+Run the full backend regression and correctness test suite:
+
+```bash
+.\.venv\Scripts\python.exe -m pytest .\backend\tests -q
 ```
-
-The repository contains:
-
-```text
-.env.example
-```
-
-as a safe configuration template.
 
 ---
 

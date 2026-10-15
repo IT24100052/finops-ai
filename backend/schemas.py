@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 from datetime import date as date_type
 from typing import Optional, List, Dict, Any
 
@@ -15,8 +15,7 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):
@@ -54,8 +53,7 @@ class BillingRecordOut(BaseModel):
     billing_period_end: Optional[date_type] = None
     tags: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── AI — Waste Detection ──────────────────────────────────────────────────────
@@ -77,6 +75,10 @@ class WasteFinding(BaseModel):
     detail: str
     recommendation: str
     confidence: str                 # "high" | "medium" | "low"
+    savings_period: Optional[str] = None
+    is_verified_monthly: Optional[bool] = False
+    estimated_savings: Optional[float] = None
+    period_cost: Optional[float] = None
 
 
 # ── AI — Cost Prediction ─────────────────────────────────────────────────────
@@ -183,8 +185,7 @@ class BudgetOut(BaseModel):
     alert_at_100: bool = True
     alert_at_110: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Upload Response ───────────────────────────────────────────────────────────

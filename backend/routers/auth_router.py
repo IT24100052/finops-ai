@@ -16,12 +16,12 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # First registered user becomes admin -- convenient for a demo/MVP
-    is_first_user = db.query(models.User).count() == 0
+    # Public registrations always receive standard 'user' role.
+    # Administrative accounts must be provisioned via offline CLI or explicit database seeding.
     user = models.User(
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
-        role="admin" if is_first_user else "user",
+        role="user",
     )
     db.add(user)
     db.commit()

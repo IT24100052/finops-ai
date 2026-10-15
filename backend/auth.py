@@ -16,7 +16,13 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 
-SECRET_KEY = os.environ.get("FINOPS_SECRET_KEY", "dev-secret-change-me-in-production")
+SECRET_KEY = os.environ.get("FINOPS_SECRET_KEY")
+
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        "FINOPS_SECRET_KEY must be configured with a strong secret "
+        "of at least 32 characters."
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day, convenient for demos
 

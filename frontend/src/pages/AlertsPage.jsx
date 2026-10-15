@@ -194,11 +194,26 @@ export default function AlertsPage() {
   const topIssues = insights?.top_issues || []
   const wastePct  = insights?.waste_percentage || 0
   const savings   = insights?.total_potential_savings || 0
+  const isMonthly = Boolean(insights?.is_verified_monthly)
+  const periodLabel = insights?.savings_period || 'observed period'
+  const periodSuffix = isMonthly ? '/mo' : ` (${periodLabel})`
 
   const aiAlerts = []
-  if (wastePct > 30) aiAlerts.push({ sev: 'high',   msg: `High waste ratio: ${wastePct}% of budget potentially wasted (~$${savings.toLocaleString(undefined,{maximumFractionDigits:0})}/mo).` })
+  if (wastePct > 30) {
+    aiAlerts.push({
+      sev: 'high',
+      msg: `High waste ratio: ${wastePct}% of budget potentially wasted (~$${savings.toLocaleString(undefined,{maximumFractionDigits:0})}${periodSuffix}).`
+    })
+  }
   topIssues.filter(i => i.severity === 'critical' || i.severity === 'high').slice(0, 3).forEach(i => {
-    aiAlerts.push({ sev: 'high', msg: `${i.issue}: ${i.resource_name || i.resource_id} — save $${i.estimated_monthly_savings.toLocaleString(undefined,{maximumFractionDigits:0})}/mo.` })
+    const itemIsMonthly = Boolean(i.is_verified_monthly)
+    const itemPeriod    = i.savings_period || periodLabel
+    const itemSuffix    = itemIsMonthly ? '/mo' : ` (${itemPeriod})`
+    const savingsVal    = (typeof i.estimated_savings === 'number' ? i.estimated_savings : i.estimated_monthly_savings) || 0
+    aiAlerts.push({
+      sev: 'high',
+      msg: `${i.issue}: ${i.resource_name || i.resource_id} — save $${savingsVal.toLocaleString(undefined,{maximumFractionDigits:0})}${itemSuffix}.`
+    })
   })
   topIssues.filter(i => i.severity === 'medium').slice(0, 2).forEach(i => {
     aiAlerts.push({ sev: 'medium', msg: `${i.issue}: ${i.resource_name || i.resource_id} — ${i.detail}` })

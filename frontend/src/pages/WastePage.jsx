@@ -40,11 +40,22 @@ export default function WastePage() {
   // Provider options
   const providers = ['all', ...new Set(findings.map(f => f.provider).filter(Boolean))]
 
+  const allVerifiedMonthly = findings.length > 0 && findings.every(f => Boolean(f.is_verified_monthly))
+
   const filtered = findings
     .filter(f => filter === 'all' || f.severity === filter)
     .filter(f => provFilter === 'all' || f.provider === provFilter)
 
-  const totalSavings = filtered.reduce((s, f) => s + f.estimated_monthly_savings, 0)
+  const filteredPeriods = [...new Set(filtered.map(f => f.savings_period).filter(Boolean))]
+  const filteredAllMonthly = filtered.length > 0 && filtered.every(f => Boolean(f.is_verified_monthly))
+  const filteredMixed = filteredPeriods.length > 1 && !filteredAllMonthly
+
+  // Do not sum findings with incompatible periods or describe an observed-period total as monthly
+  const canSumFiltered = !filteredMixed
+  const totalSavings = canSumFiltered
+    ? filtered.reduce((s, f) => s + ((typeof f.estimated_savings === 'number' ? f.estimated_savings : f.estimated_monthly_savings) || 0), 0)
+    : null
+
   const critical = findings.filter(f => f.severity === 'critical').length
   const high     = findings.filter(f => f.severity === 'high').length
   const medium   = findings.filter(f => f.severity === 'medium').length
@@ -69,9 +80,21 @@ export default function WastePage() {
             {/* Summary cards */}
             <div className="grid-4 section">
               <div className="card">
-                <div className="card-label">Potential Savings</div>
-                <div className="card-value accent">${totalSavings.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-                <div className="card-sub">from {filtered.length} issue(s)</div>
+                <div className="card-label">
+                  {filteredAllMonthly ? 'Potential Monthly Savings' : 'Potential Savings'}
+                </div>
+                <div className="card-value accent">
+                  {canSumFiltered
+                    ? `$${totalSavings.toLocaleString(undefined,{maximumFractionDigits:0})}`
+                    : 'Mixed Periods'}
+                </div>
+                <div className="card-sub">
+                  {canSumFiltered
+                    ? (filteredAllMonthly
+                        ? `from ${filtered.length} issue(s) (/month)`
+                        : `from ${filtered.length} issue(s) across ${filteredPeriods[0] || 'observed period'}`)
+                    : 'Multiple observation windows; see individual items'}
+                </div>
               </div>
               <div className="card">
                 <div className="card-label">Critical / High</div>
@@ -123,51 +146,61 @@ export default function WastePage() {
                     <th>Issue</th>
                     <th>Severity</th>
                     <th>Confidence</th>
-                    <th style={{ textAlign: 'right' }}>Monthly Cost</th>
-                    <th style={{ textAlign: 'right' }}>Savings</th>
+                    <th style={{ textAlign: 'right' }}>{allVerifiedMonthly ? 'Monthly Cost' : 'Period Cost'}</th>
+                    <th style={{ textAlign: 'right' }}>{allVerifiedMonthly ? 'Savings (/mo)' : 'Estimated Savings'}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((f, i) => (
-                    <tr key={i}>
-                      <td>
-                        <div className="resource-id">{f.resource_name || f.resource_id}</div>
-                        <div className="resource-type">{f.resource_id}</div>
-                        {f.instance_type && <div className="resource-type">{f.instance_type}</div>}
-                        {f.team && <div className="resource-type" style={{ color: 'var(--info)' }}>{f.team}</div>}
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                          {f.provider || '—'}
-                        </div>
-                        <div className="resource-type">{f.region || '—'}</div>
-                        {f.environment && (
-                          <div style={{ fontSize: '0.68rem', marginTop: 2 }}>
-                            <span className={`badge badge-${
-                              f.environment === 'production' ? 'ok' :
-                              f.environment === 'staging' ? 'medium' : 'low'
-                            }`}>{f.environment}</span>
+                  {filtered.map((f, i) => {
+                    const costVal = typeof f.period_cost === 'number' ? f.period_cost : f.monthly_cost
+                    const savingsVal = typeof f.estimated_savings === 'number' ? f.estimated_savings : f.estimated_monthly_savings
+                    const isMonthlyFinding = Boolean(f.is_verified_monthly)
+                    const periodTag = isMonthlyFinding ? '/mo' : (f.savings_period || 'observed period')
+
+                    return (
+                      <tr key={i}>
+                        <td>
+                          <div className="resource-id">{f.resource_name || f.resource_id}</div>
+                          <div className="resource-type">{f.resource_id}</div>
+                          {f.instance_type && <div className="resource-type">{f.instance_type}</div>}
+                          {f.team && <div className="resource-type" style={{ color: 'var(--info)' }}>{f.team}</div>}
+                        </td>
+                        <td>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                            {f.provider || '—'}
                           </div>
-                        )}
-                      </td>
-                      <td style={{ maxWidth: 280 }}>
-                        <div className="issue-title">{f.issue}</div>
-                        <div className="issue-detail">{f.detail}</div>
-                        <div className="issue-detail" style={{ color: 'var(--accent)', marginTop: 4 }}>
-                          {f.recommendation}
-                        </div>
-                      </td>
-                      <td><SeverityBadge s={f.severity} /></td>
-                      <td><ConfidenceDot c={f.confidence} /></td>
-                      <td className="cost-cell">
-                        <span className="cost-val">${f.monthly_cost.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
-                      </td>
-                      <td className="cost-cell">
-                        <span className="savings-val">${f.estimated_monthly_savings.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{f.savings_percentage}%</div>
-                      </td>
-                    </tr>
-                  ))}
+                          <div className="resource-type">{f.region || '—'}</div>
+                          {f.environment && (
+                            <div style={{ fontSize: '0.68rem', marginTop: 2 }}>
+                              <span className={`badge badge-${
+                                f.environment === 'production' ? 'ok' :
+                                f.environment === 'staging' ? 'medium' : 'low'
+                              }`}>{f.environment}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ maxWidth: 280 }}>
+                          <div className="issue-title">{f.issue}</div>
+                          <div className="issue-detail">{f.detail}</div>
+                          <div className="issue-detail" style={{ color: 'var(--accent)', marginTop: 4 }}>
+                            {f.recommendation}
+                          </div>
+                        </td>
+                        <td><SeverityBadge s={f.severity} /></td>
+                        <td><ConfidenceDot c={f.confidence} /></td>
+                        <td className="cost-cell">
+                          <span className="cost-val">${costVal.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{periodTag}</div>
+                        </td>
+                        <td className="cost-cell">
+                          <span className="savings-val">${savingsVal.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {isMonthlyFinding ? `${f.savings_percentage}% (/mo)` : `${f.savings_percentage}% (observed)`}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

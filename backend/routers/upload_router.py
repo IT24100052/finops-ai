@@ -4,6 +4,7 @@ Supports generic multi-cloud CSV format and AWS/Azure/GCP column aliases
 via the provider normalizer.
 """
 import io
+import math
 from datetime import datetime
 from typing import List
 
@@ -29,9 +30,10 @@ def _validate_row(row: pd.Series, idx: int, errors: List[str]) -> bool:
     """Validate a single row. Returns True if row is insertable, appends error strings."""
     ok = True
 
-    # Required fields present
+    # Required fields present and non-empty
     for col in ["date", "service", "resource_id", "cost"]:
-        if col not in row.index or pd.isna(row.get(col)):
+        val = row.get(col)
+        if col not in row.index or pd.isna(val) or (isinstance(val, str) and not val.strip()):
             errors.append(f"Row {idx}: missing required field '{col}'")
             ok = False
 
@@ -39,42 +41,94 @@ def _validate_row(row: pd.Series, idx: int, errors: List[str]) -> bool:
         return False  # can't validate further without required fields
 
     # Date validity
-    if pd.isna(row.get("date")):
-        errors.append(f"Row {idx}: invalid or unparseable date '{row.get('date')}'")
+    d_raw = row.get("date")
+    if pd.isna(d_raw) or d_raw is None:
+        errors.append(f"Row {idx}: invalid or unparseable date '{d_raw}'")
         ok = False
 
-    # Cost validation
+    # Cost validation (must be finite, non-negative number)
     try:
         cost = float(row["cost"])
-        if cost < 0:
+        if not math.isfinite(cost):
+            errors.append(f"Row {idx}: cost must be a finite number")
+            ok = False
+        elif cost < 0:
             errors.append(f"Row {idx}: negative cost ({cost}) is not allowed")
             ok = False
     except (ValueError, TypeError):
         errors.append(f"Row {idx}: cost '{row['cost']}' is not a valid number")
         ok = False
 
-    # CPU validation (optional field)
+    # CPU validation (optional field, 0-100%)
     cpu = row.get("avg_cpu_utilization")
     if cpu is not None and not pd.isna(cpu):
         try:
             cpu_val = float(cpu)
-            if not (0.0 <= cpu_val <= 100.0):
+            if not math.isfinite(cpu_val) or not (0.0 <= cpu_val <= 100.0):
                 errors.append(f"Row {idx}: avg_cpu_utilization={cpu_val} is outside 0–100%")
                 ok = False
         except (ValueError, TypeError):
             errors.append(f"Row {idx}: avg_cpu_utilization '{cpu}' is not a valid number")
             ok = False
 
-    # Usage hours validation (optional field)
+    # Usage hours validation (optional field, 0-8784)
     hours = row.get("usage_hours")
     if hours is not None and not pd.isna(hours):
         try:
             hours_val = float(hours)
-            if hours_val < 0 or hours_val > 8784:  # max hours in a year
+            if not math.isfinite(hours_val) or hours_val < 0 or hours_val > 8784:  # max hours in a year
                 errors.append(f"Row {idx}: usage_hours={hours_val} is outside valid range (0–8784)")
                 ok = False
         except (ValueError, TypeError):
             errors.append(f"Row {idx}: usage_hours '{hours}' is not a valid number")
+            ok = False
+
+    # Storage GB validation (optional field, non-negative finite)
+    storage = row.get("storage_gb")
+    if storage is not None and not pd.isna(storage):
+        try:
+            s_val = float(storage)
+            if not math.isfinite(s_val) or s_val < 0:
+                errors.append(f"Row {idx}: storage_gb must be a non-negative finite number")
+                ok = False
+        except (ValueError, TypeError):
+            errors.append(f"Row {idx}: storage_gb '{storage}' is not a valid number")
+            ok = False
+
+    # Usage quantity validation (optional field, non-negative finite)
+    quantity = row.get("usage_quantity")
+    if quantity is not None and not pd.isna(quantity):
+        try:
+            q_val = float(quantity)
+            if not math.isfinite(q_val) or q_val < 0:
+                errors.append(f"Row {idx}: usage_quantity must be a non-negative finite number")
+                ok = False
+        except (ValueError, TypeError):
+            errors.append(f"Row {idx}: usage_quantity '{quantity}' is not a valid number")
+            ok = False
+
+    # List cost validation (optional field, non-negative finite)
+    list_cost = row.get("list_cost")
+    if list_cost is not None and not pd.isna(list_cost):
+        try:
+            lc_val = float(list_cost)
+            if not math.isfinite(lc_val) or lc_val < 0:
+                errors.append(f"Row {idx}: list_cost must be a non-negative finite number")
+                ok = False
+        except (ValueError, TypeError):
+            errors.append(f"Row {idx}: list_cost '{list_cost}' is not a valid number")
+            ok = False
+
+    # Discount validation (optional field, non-negative finite)
+    discount = row.get("discount")
+    if discount is not None and not pd.isna(discount):
+        try:
+            d_val = float(discount)
+            if not math.isfinite(d_val) or d_val < 0:
+                errors.append(f"Row {idx}: discount must be a non-negative finite number")
+                ok = False
+        except (ValueError, TypeError):
+            errors.append(f"Row {idx}: discount '{discount}' is not a valid number")
             ok = False
 
     return ok
@@ -90,7 +144,10 @@ def _safe_float(val) -> float | None:
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return None
     try:
-        return float(val)
+        f = float(val)
+        if not math.isfinite(f):
+            return None
+        return f
     except (ValueError, TypeError):
         return None
 
@@ -112,35 +169,52 @@ async def upload_billing_csv(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # File type check
-    if not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Please upload a .csv file")
+    try:
+        # File type check
+        if not file.filename or not file.filename.lower().endswith(".csv"):
+            raise HTTPException(status_code=400, detail="Please upload a .csv file")
 
-    raw = await file.read()
+        # Stream and enforce size limit chunk-by-chunk (prevents unbounded memory consumption)
+        max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+        chunks = []
+        total_bytes = 0
+        chunk_size = 1024 * 1024  # 1 MB chunk
 
-    # Size check
-    size_mb = len(raw) / (1024 * 1024)
-    if size_mb > MAX_FILE_SIZE_MB:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File is {size_mb:.1f} MB. Maximum allowed size is {MAX_FILE_SIZE_MB} MB."
-        )
+        while True:
+            chunk = await file.read(chunk_size)
+            if not chunk:
+                break
+            total_bytes += len(chunk)
+            if total_bytes > max_bytes:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE_MB} MB."
+                )
+            chunks.append(chunk)
 
-    # Empty file check
-    if len(raw) == 0:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+        if total_bytes == 0:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-    # Parse CSV
+        raw = b"".join(chunks)
+    finally:
+        await file.close()
+
+    # Parse CSV safely
     try:
         df = pd.read_csv(io.BytesIO(raw))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Could not parse CSV: {e}")
+    except pd.errors.EmptyDataError:
+        raise HTTPException(status_code=400, detail="CSV file has no data rows.")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not parse CSV file. Please ensure it is a valid, well-formed CSV.")
 
     if df.empty:
         raise HTTPException(status_code=400, detail="CSV file has no data rows.")
 
     # Normalize provider-specific columns → internal schema
-    df = normalize_dataframe(df)
+    try:
+        df = normalize_dataframe(df)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not normalize CSV columns. Please check the file structure.")
 
     # Check required columns
     missing = REQUIRED_COLUMNS - set(df.columns)
@@ -196,13 +270,13 @@ async def upload_billing_csv(
             cost_val = float(row["cost"])
             date_val = row["date"]
             if pd.isna(date_val):
-                raise ValueError("date is NaT")
+                raise ValueError("date is unparseable or missing")
 
             record = models.BillingRecord(
                 owner_id=current_user.id,
                 date=date_val if not isinstance(date_val, str) else pd.to_datetime(date_val).date(),
-                service=str(row["service"]),
-                resource_id=str(row["resource_id"]),
+                service=str(row["service"]).strip(),
+                resource_id=str(row["resource_id"]).strip(),
                 cost=cost_val,
                 # Provider context
                 provider=_safe_str(row.get("provider")),
@@ -237,7 +311,7 @@ async def upload_billing_csv(
             inserted += 1
             inserted_costs.append(cost_val)
             inserted_dates.append(date_val)
-            services_seen.add(str(row["service"]))
+            services_seen.add(str(row["service"]).strip())
             prov = _safe_str(row.get("provider"))
             if prov:
                 providers_seen.add(prov)
@@ -246,7 +320,14 @@ async def upload_billing_csv(
             validation_errors.append(f"Row {i + 2}: {e}")
             rejected += 1
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database transaction failed while persisting billing records. Upload has been rolled back."
+        )
 
     # Build date range
     date_range = None

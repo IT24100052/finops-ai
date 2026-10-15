@@ -178,7 +178,8 @@ export default function ResourceDetailPage() {
                   </div>
                   <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     Estimated savings: <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
-                      ${f.estimated_monthly_savings.toLocaleString(undefined,{maximumFractionDigits:2})}/mo
+                      ${(typeof f.estimated_savings === 'number' ? f.estimated_savings : f.estimated_monthly_savings).toLocaleString(undefined,{maximumFractionDigits:2})}
+                      {f.is_verified_monthly ? '/mo' : ` (${f.savings_period || 'observed period'})`}
                     </span>
                   </div>
                 </div>
